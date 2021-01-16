@@ -1,4 +1,5 @@
-### Hi there 👋
+I'm a first year engineering student at the University of Toronto.
+I am study Engineering Science which has two foundational years before I will choose a program to specialise in.
 
 <!--
 **RunnersNum40/RunnersNum40** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
