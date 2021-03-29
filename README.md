@@ -1,6 +1,8 @@
 I'm a first year engineering student at the University of Toronto.
 I study Engineering Science which has two foundational years before I can choose a program to specialise in.
 
+You can reach me at p_t@fastmail.net
+
 <!--
 **RunnersNum40/RunnersNum40** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
