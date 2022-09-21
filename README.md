@@ -1,4 +1,3 @@
-I'm a second year engineering student at the University of Toronto.
-I study Engineering Science which has two foundational years before I can choose a program to specialise in.
+I'm a third year engineering student at the University of Toronto. I am in the [engineering science](https://engsci.utoronto.ca/) option and I have specialized in Machine Intelligence engineering.
 
 You can reach me at ted.pinkerton@mail.utoronto.ca
