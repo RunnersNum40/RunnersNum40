@@ -88,14 +88,7 @@ if __name__ == "__main__":
     # data = np.array((xx.ravel(), yy.ravel())).T
 
     k = 3
-    # mu, clusters = optimize(k, data)
-
-    data = np.array([[0, 0], [0, 1],
-                 [0, 3], [0, 4]])
-
-    k = np.array([[1, 2], [2, 2]])
-
-    mu, clusters = k_means(k, data)
+    mu, clusters = optimize(k, data)
 
     plot_clusters(mu, clusters, plt)
     plt.show()
