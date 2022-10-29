@@ -25,7 +25,7 @@ class PolynomialRegression:
 
     def fit(self, x, y, max_power=10):
         # Creatate a train/test split to find the optimal power
-        x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=.66)
+        x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=.66666)
         # Find the regression with best results on the training data
         trials = [(i, *self._test_power(x_train, x_test, y_train, y_test, i)) for i in range(1, max_power+1)]
         optimal = min(trials, key=lambda l: l[-1])
@@ -51,11 +51,11 @@ class PolynomialRegression:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    power = 3
+    power = np.random.randint(5)+1
     n = 100
     # Training Data
     w = tuple(np.random.randn(power+1))
-    x = np.random.rand(n).reshape((n))*10-5
+    x = np.random.rand(n).reshape((n))*100-50
     y = np.dot(w, np.array([x**n for n in range(power+1)]))+np.random.normal(0, 1, n)
     # Preform the fit
     PRM = PolynomialRegression()
@@ -63,7 +63,8 @@ if __name__ == '__main__':
     # Visualization of the fit
     x_sample = np.linspace(np.min(x), np.max(x), 2*n)
     y_sample = np.array([PRM.predict(x_i) for x_i in x_sample])
-
+    print(power, PRM.power)
+    print(w, PRM.w)
     plt.scatter(x, y, label="Data")
     plt.plot(x_sample, y_sample, c="red", label="Fit")
     plt.legend(loc="upper right")
