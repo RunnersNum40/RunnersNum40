@@ -1,7 +1,38 @@
 import numpy as np
 from activation_functions import *
 
+from progress.bar import Bar
+
 class Layer:
+    def __init__(self):
+        pass
+
+    def forward(self):
+        pass
+
+    def backwards(self):
+        pass
+
+class ActivationLayer(Layer):
+    def __init__(self, activation_function):
+        self.activation_function = activation_function
+
+    def forward(self, inputs: list) -> list:
+        """Calculate the activation of the layer for a given input.
+
+        Args:
+            inputs: List of inputs
+        """
+        self.input = inputs
+        return self.activation_function.activate(inputs)
+
+    def backwards(self, error: list, learning_rate: float = 1) -> list:
+        return self.activation_function.derivative(self.input)*error
+
+    def __str__(self) -> str:
+        return f"Activation layer with {len(self.input)} inputs"
+
+class DenseLayer(Layer):
     def __init__(self):
         pass
 
@@ -13,10 +44,10 @@ class Layer:
         """
         # Add a bias input
         inputs = np.append(np.array(inputs), 1)
+        self.input = inputs
+        return np.dot(self.weights, inputs)
 
-        return self.activation_function.activate(np.dot(self.weights, inputs))
-
-    def backwards(self, inputs: list, error: list, learning_rate: float = 0.01) -> list:
+    def backwards(self, error: list, learning_rate: float = 0.01) -> list:
         """Calculate the the derivative of error with respect to the weights for a given input.
 
         Args:
@@ -24,19 +55,15 @@ class Layer:
             error: Change in error with respect to the layer output
             learning_rate: Learning rate hyperparameter
         """
-        error, inputs = np.array(error), np.array(inputs)
-        # inputs = np.append(inputs, 1)
-        # Calculate the change in error with respect to the activation function
-        error = np.multiply(self.activation_function.derivative(inputs), error)
+        error, inputs = np.array(error), np.expand_dims(self.input, 1)
 
-        # Update the weights down the gradient of the error with respect to the weights
-        error_by_weights = learning_rate*np.dot(inputs.T, error)
         # Return the change in error with respect to the inputs
-        print(error)
-        error_by_inputs = np.dot(error, self.weights.T)
+        error_by_inputs = np.dot(error, self.weights)
+        # Update the weights down the gradient of the error with respect to the weights
+        error_by_weights = np.dot(inputs, error).T
 
-        self.weights -= error_by_weights
-        return error_by_inputs
+        self.weights -= learning_rate*error_by_weights
+        return np.delete(error_by_inputs, -1, axis=1)
 
     @property
     def num_inputs(self) -> int:
@@ -48,7 +75,7 @@ class Layer:
         return self.weights.shape[0]
 
     @classmethod
-    def randomized(cls, num_inputs: int, num_outputs: int, activation_function=None):
+    def randomized(cls, num_inputs: int, num_outputs: int):
         """Return a new layer with random weights.
 
         Args:
@@ -60,13 +87,11 @@ class Layer:
         # Intialize an array of random weights
         weights = 1-2*np.random.rand(num_outputs, num_inputs)
         # Create the bias weights
-        new_layer.weights = np.concatenate((weights, np.zeros((num_outputs, 1))), axis=1)
-        # Choose the identity if no activation function provided
-        new_layer.activation_function = activation_function if activation_function is not None else identity
+        new_layer.weights = np.concatenate((weights, np.ones((num_outputs, 1))), axis=1)
         return new_layer
 
     @classmethod
-    def from_weights(cls, weights: list, activation_function=None):
+    def from_weights(cls, weights: list):
         """Return a new layer with provided weights.
 
         Args:
@@ -75,8 +100,6 @@ class Layer:
         """
         new_layer = cls()
         new_layer.weights = weights
-        # Choose the identity if no activation function provided
-        new_layer.activation_function = activation_function if activation_function is not None else identity
         return new_layer
 
     def __str__(self) -> str:
@@ -86,7 +109,10 @@ class NeuralNetwork:
     def __init__(self):
         self.layers = []
 
-    def forward_propgate(self, inputs: list) -> list:
+    def add(self, layer):
+        self.layers.append(layer)
+
+    def forward_propagate(self, inputs: list) -> list:
         """Return the output layers from a given output.
 
         Args:
@@ -100,15 +126,15 @@ class NeuralNetwork:
 
         return layer_outputs
 
-    def backwards_propogate(self, layer_outputs: list, target: list, learning_rate: float = 0.01):
+    def backwards_propagate(self, layer_outputs: list, target: list, learning_rate: float = 0.01):
         """Train the network on a single input.
 
         Args:
-            layer_outputs: List of each layer's output in the forward propogation step
+            layer_outputs: List of each layer's output in the forward propagate step
             target: Target output
             learning_rate: Learning rate hyperparameter 
         """
-        # Calulate the starting error
+        # Calulate the starting error change in loss by change in the output
         error = self.loss_derivative(layer_outputs[-1], target)
         # Loop through the layers in reverse order
         for layer in self.layers[::-1]:
@@ -121,7 +147,7 @@ class NeuralNetwork:
             output: Network output
             target: Target output
         """
-        return np.mean(np.square(lables-inputs))
+        return np.mean(np.square(target-output))
 
     def loss_derivative(self, output: list, target: list) -> float:
         """Return change in error with respect to the output of the network.
@@ -132,19 +158,35 @@ class NeuralNetwork:
         """
         return 2*(output-target)/len(output)
 
-    def train(self, x_train: list, y_train: list, epochs: int = 50, learning_rate: float = 0.01):
+    def train(self, x_train: list, y_train: list, epochs: int = 50, learning_rate: float = 0.01, progress_update: bool = False, progress_bar: bool = False):
+        """Train the neural network on a set of training data.
+
+        Args:
+            x_train: Training points
+            y_train: Training outputs
+            epoch: Integer number of epochs to run
+            learning_rate: Learning rate hyperparameter
+            progress_update: Boolean flag to print updates
+            progress_bar: Boolean flag to display a progress bar
+        """
+        if progress_bar: bar = Bar("Epoch", max=epochs, suffix = r"%(index)d/%(max)d epochs - %(eta)ds eta - %(error)f error")
         samples = len(x_train)
         for epoch in range(epochs):
             error = 0
-            for n, (x, y) in enumerate(zip(x_train, y_train)):
-                layer_outputs = self.forward_propgate(x)
-                self.backwards_propogate(layer_outputs, y, learning_rate)
+
+            for x, y in zip(x_train, y_train):
+                layer_outputs = self.forward_propagate(x)
+                self.backwards_propagate(layer_outputs, y, learning_rate)
 
                 # Store the error to average across each epoch
                 error += self.loss(layer_outputs[-1], y)
 
-            error /= samples
-            print(f"Epoch:{epoch+1} of {epochs}, error:{error}")
+            self.error = error/samples
+            if progress_update: print(f"Epoch: {epoch+1}/{epochs}, loss: {round(self.error, 5)}")
+            if progress_bar:
+                bar.error = self.error
+                bar.next()
+        if progress_bar: bar.finish()
 
     def classify(self, inputs: list) -> int:
         """Return the index of the highest output neuron from a given input.
@@ -152,7 +194,7 @@ class NeuralNetwork:
         Args:
             inputs: List of input data
         """
-        return np.argmax(self.activate(inputs)[-1])
+        return np.argmax(self.forward_propgate(inputs)[-1])
 
     def __call__(self, inputs: list) -> list:
         return self.forward_propgate(inputs)[-1]
@@ -170,49 +212,24 @@ class NeuralNetwork:
         """Return the size of each layer in the network."""
         return [self.num_inputs]+[layer.num_outputs for layer in self.layers]
 
-    @classmethod
-    def randomized(cls, layers: list, activation_functions = None, layer_cls = Layer):
-        """Return a new neural network with random weights.
-
-        Args:
-            layers: Output size of each layer including the input layer
-            activation_functions: List of activation_functions used by the layers excluding the input layer
-            layer_cls: Layer class to use
-        """
-        new_network = cls()
-        # Choose the identity if no activation functions provided
-        if activation_functions is None:
-            activation_functions = [None for _ in layers]
-        # Create layers with random weights
-        for inputs, outputs, activation_function in zip(layers, layers[1:], activation_functions):
-            new_network.layers.append(layer_cls.randomized(inputs, outputs, activation_function))
-
-        return new_network
-
-    @classmethod
-    def from_weights(cls, layer_weights: list, activation_functions = None, layer_cls = Layer):
-        """Return a new neural network with provided weights.
-
-        Args:
-            layer_weights: List of weight matrixes used by each layer including bias columns
-            activation_function: List of activation_functions used by the layers excluding the input layer
-            layer_cls: Layer class to use
-        """
-        new_network = cls()
-        # Choose the identity if no activation functions provided
-        if activation_functions is None:
-            activation_functions = [None for _ in layers]
-        # Create layers with the provided weights
-        for weights, activation_function in zip(layer_weights, activation_functions):
-            new_network.layers.append(layer_cls.from_weights(weights, activation_function))
-
-
 if __name__ == '__main__':
     # XOR training data
     x_train = np.array([[[0,0]], [[0,1]], [[1,0]], [[1,1]]])
-    y_train = np.array([[[0, 1]], [[1, 0]], [[1, 0]], [[0, 1]]])
+    y_train = np.array([[[0]], [[1]], [[1]], [[0]]])
 
     # New network
-    nn = NeuralNetwork.randomized([2, 3, 2], [Tanh(), Tanh()])
-    nn.train(x_train, y_train, 1000, 0.1)
+    nn = NeuralNetwork()
+    nn.add(DenseLayer.randomized(2, 100))
+    nn.add(ActivationLayer(Tanh()))
+    nn.add(DenseLayer.randomized(100, 50))
+    nn.add(ActivationLayer(Tanh()))
+    nn.add(DenseLayer.randomized(50, 1))
+    nn.add(ActivationLayer(Tanh()))
 
+    for x, y in zip(x_train, y_train):
+        print(x, nn(x), y)
+
+    nn.train(x_train, y_train, 4, 1000, 0.1)
+
+    for x, y in zip(x_train, y_train):
+        print(x, nn(x), y)
