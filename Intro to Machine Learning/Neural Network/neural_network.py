@@ -3,6 +3,7 @@ from activation_functions import *
 
 from progress.bar import Bar
 
+
 class Layer:
     def __init__(self):
         pass
@@ -12,6 +13,7 @@ class Layer:
 
     def backwards(self):
         pass
+
 
 class ActivationLayer(Layer):
     def __init__(self, activation_function):
@@ -31,6 +33,7 @@ class ActivationLayer(Layer):
 
     def __str__(self) -> str:
         return f"Activation layer with {len(self.input)} inputs"
+
 
 class DenseLayer(Layer):
     def __init__(self):
@@ -194,10 +197,10 @@ class NeuralNetwork:
         Args:
             inputs: List of input data
         """
-        return np.argmax(self.forward_propgate(inputs)[-1])
+        return np.argmax(self.forward_propagate(inputs)[-1])
 
     def __call__(self, inputs: list) -> list:
-        return self.forward_propgate(inputs)[-1]
+        return self.forward_propagate(inputs)[-1]
 
     @property
     def num_inputs(self) -> int:
@@ -212,9 +215,10 @@ class NeuralNetwork:
         """Return the size of each layer in the network."""
         return [self.num_inputs]+[layer.num_outputs for layer in self.layers]
 
+
 if __name__ == '__main__':
     # XOR training data
-    x_train = np.array([[[0,0]], [[0,1]], [[1,0]], [[1,1]]])
+    x_train = np.array([[[0, 0]], [[0, 1]], [[1, 0]], [[1, 1]]])
     y_train = np.array([[[0]], [[1]], [[1]], [[0]]])
 
     # New network
